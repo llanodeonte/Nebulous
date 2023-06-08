@@ -11,12 +11,14 @@ fn main() {
     let mut bus = Bus::new();
     let mut ram = Ram::new();
 
-    // Ram testing
+    // Ram test prior to writing to Ram
     let test_byte = bus.read_ram(&mut ram, 0xFF);
     println!("Test byte: {:X?}", test_byte);
 
+    // Writing test byte to Ram
     bus.write_ram(&mut ram, 0xFF, 0xA1);
 
+    // Ram test after writing to Ram
     let test_byte = bus.read_ram(&mut ram, 0xFF);
     println!("Test byte: {:X?}", test_byte);
 
