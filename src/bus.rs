@@ -1,4 +1,4 @@
-use crate::Ram;
+use crate::ram::Ram;
 
 pub struct Bus {
 }

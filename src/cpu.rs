@@ -1,4 +1,5 @@
-use crate::{Bus, Ram};
+use crate::bus::Bus;
+use crate::ram::Ram;
 
 enum AddrMode {
     ZPX, // Zero Page Indexed X
@@ -38,7 +39,7 @@ impl Cpu {
     }
 
     // For now, fetches u8 opcode from ram at pc
-    pub fn fetch_opcode(&self, bus: &Bus, ram: &Ram) -> u8 {
+    pub fn fetch_opcode(&self, bus: &mut Bus, ram: &mut Ram) -> u8 {
         bus.read_ram(ram, self.pc as usize)
     }
 }
