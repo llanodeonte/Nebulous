@@ -23,6 +23,6 @@ fn main() {
     println!("Test byte: {:X?}", test_byte);
 
     // CPU testing
-    let test_pc = cpu.fetch_opcode(&bus, &ram);
+    let test_pc = cpu.tick(&bus, &ram);
     println!("Test pc: {:X?}", test_pc);
 }

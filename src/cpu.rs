@@ -38,14 +38,19 @@ impl Cpu {
         }
     }
 
+    pub fn tick(&self, bus: &Bus, ram: &Ram) {
+        let current_opcode = self.fetch_opcode(bus, ram);
+        self.execute_opcode(current_opcode);
+    }
+
     // For now, fetches u8 opcode from ram at pc
-    pub fn fetch_opcode(&self, bus: &Bus, ram: &Ram) -> u8 {
+    fn fetch_opcode(&self, bus: &Bus, ram: &Ram) -> u8 {
         bus.read_ram(ram, self.pc as usize)
     }
 
     // Work in progress opcode mapping/handling
-    fn execute_opcode(&self) {
-        match opcode {
+    fn execute_opcode(&self, current_opcode: u8) {
+        match current_opcode {
             // Work in progress opcode table
 
             // Control Opcodes
