@@ -36,6 +36,6 @@ fn main() {
     let test_pc = cpu.tick(&bus, &ram);
     println!("Test pc: {:X?}", test_pc);
 
-    // ROM load test
-    println!("ROM file name: {:X?}", rom_data);
+    // ROM load test (Currently limited to the beginning of a file)
+    println!("ROM file name: {:X?}", &rom_data[0..480]);
 }
