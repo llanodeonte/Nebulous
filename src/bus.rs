@@ -1,3 +1,5 @@
+// Add memory map guards based on addressing
+
 use crate::ram::Ram;
 
 pub struct Bus {

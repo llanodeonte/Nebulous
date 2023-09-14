@@ -1,3 +1,7 @@
+// Route ROM buffer to RAM mapping? (Is ROM buffer directly accessible...
+//    or only accessible through RAM mapping?)
+// Build out more detailed debug information
+
 mod cpu;
 mod bus;
 mod ram;

@@ -1,3 +1,6 @@
+// Build in error handling for ROM loading
+// Will it be neccessary to load a BIOS of some sort?
+
 use std::env;
 use std::fs;
 

@@ -1,3 +1,5 @@
+// Set PC and expand functions to allow fetch of first opcode
+
 use crate::bus::Bus;
 use crate::ram::Ram;
 
