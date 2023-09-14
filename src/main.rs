@@ -1,25 +1,19 @@
 mod cpu;
 mod bus;
 mod ram;
-
-use std::env;
-use std::fs;
-use std::io::Read;
+mod rom;
 
 use cpu::Cpu;
 use bus::Bus;
 use ram::Ram;
+use rom::Rom;
 
 fn main() {
     let cpu = Cpu::new();
     let bus = Bus::new();
     let mut ram = Ram::new();
-
-    // Load and store ROM data
-    let rom_file_path = env::args().nth(1).unwrap();
-    let mut rom_file = fs::File::open(rom_file_path).unwrap();
-    let mut rom_data = Vec::new();
-    rom_file.read_to_end(&mut rom_data).unwrap();
+    let mut rom = Rom::new();
+    rom.load_rom();
 
     // Ram test prior to writing to Ram
     let test_byte = bus.read_ram(&ram, 0xFF);
@@ -37,5 +31,5 @@ fn main() {
     println!("Test pc: {:X?}", test_pc);
 
     // ROM load test (Currently limited to the beginning of a file)
-    println!("ROM file name: {:X?}", &rom_data[0..480]);
+    println!("ROM file name: {:X?}", &rom.buffer[0..480]);
 }
