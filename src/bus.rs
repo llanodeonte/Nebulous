@@ -22,15 +22,18 @@ impl Bus {
     }
 
     // Update naming conventions to reflect broader addressing
-    pub fn read_ram(&self, ram: &Ram, addr: usize) -> u8 {
+    pub fn read(&self, ram: &Ram, addr: usize) -> u8 {
         match addr {
             // Finish building full address range with temp panics for each function
-            0x0000..=0x1FFF => ram.read_ram(addr),
-            _ => panic!("Address {:?} outside valid range", addr)
+            0x0000..=0x1FFF => ram.read(addr & 0x7FF),
+            _ => panic!("Address {:?} outside valid read range", addr)
         }
     }
 
-    pub fn write_ram(&self, ram: &mut Ram, addr: usize, data: u8) {
-        ram.write_ram(addr, data);
+    pub fn write(&self, ram: &mut Ram, addr: usize, data: u8) {
+        match addr {
+            0x0000..=0x1FFF => ram.write(addr & 0x7FF, data),
+            _ => panic!("Address {:?} outside valid write range", addr)
+        }
     }
 }

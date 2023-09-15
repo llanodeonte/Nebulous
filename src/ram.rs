@@ -9,11 +9,11 @@ impl Ram {
         }
     }
 
-    pub fn read_ram(&self, addr: usize) -> u8 {
+    pub fn read(&self, addr: usize) -> u8 {
         self.ram[addr]
     }
 
-    pub fn write_ram(&mut self, addr: usize, data: u8) {
+    pub fn write(&mut self, addr: usize, data: u8) {
         self.ram[addr] = data;
     }
 }

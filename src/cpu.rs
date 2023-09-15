@@ -47,7 +47,7 @@ impl Cpu {
 
     // For now, fetches u8 opcode from ram at pc
     fn fetch_opcode(&self, bus: &Bus, ram: &Ram) -> u8 {
-        bus.read_ram(ram, self.pc as usize)
+        bus.read(ram, self.pc as usize)
     }
 
     // Work in progress opcode mapping/handling

@@ -20,14 +20,14 @@ fn main() {
     rom.load_rom();
 
     // Ram test prior to writing to Ram
-    let test_byte = bus.read_ram(&ram, 0xFF);
+    let test_byte = bus.read(&ram, 0x7FF);
     println!("Test byte: {:X?}", test_byte);
 
     // Writing test byte to Ram
-    bus.write_ram(&mut ram, 0xFF, 0xA1);
+    bus.write(&mut ram, 0xFFF, 0xA1);
 
     // Ram test after writing to Ram
-    let test_byte = bus.read_ram(&ram, 0xFF);
+    let test_byte = bus.read(&ram, 0x7FF);
     println!("Test byte: {:X?}", test_byte);
 
     // CPU testing
