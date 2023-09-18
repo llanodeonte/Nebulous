@@ -1,6 +1,7 @@
 // Route ROM buffer to RAM mapping? (Is ROM buffer directly accessible...
 //    or only accessible through RAM mapping?)
 // Build out more detailed debug information
+// Rework main to work with new CPU pipeline for testing
 
 mod cpu;
 mod bus;
@@ -13,7 +14,7 @@ use ram::Ram;
 use rom::Rom;
 
 fn main() {
-    let cpu = Cpu::new();
+    let mut cpu = Cpu::new();
     let bus = Bus::new();
     let mut ram = Ram::new();
     let mut rom = Rom::new();
@@ -31,7 +32,7 @@ fn main() {
     println!("Test byte: {:X?}", test_byte);
 
     // CPU testing
-    let test_pc = cpu.tick(&bus, &ram);
+    let test_pc = cpu.cycle(&bus, &ram);
     println!("Test pc: {:X?}", test_pc);
 
     // ROM load test (Currently limited to the beginning of a file)
