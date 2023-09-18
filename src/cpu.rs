@@ -248,5 +248,10 @@ impl Cpu {
 
     fn opcode_lda(&mut self, addr: AddrMode, cycles: u8, bus: &Bus, ram: &Ram) {
         let current_addr = self.fetch_addr(addr, bus, ram);
+        self.a = bus.read(ram, current_addr as usize);
+        // Build set_flag();
+        // Set flags via set_flag()
+        // Decide how to set cycles
+        // Set cycles
     }
 }
