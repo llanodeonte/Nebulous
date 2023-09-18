@@ -30,6 +30,12 @@ impl Bus {
         }
     }
 
+    pub fn read_u16 (&self, ram: &Ram, addr: usize) -> u16 {
+        let addr_lo = ram.read(addr as usize);
+        let addr_hi = ram.read((addr + 1) as usize);
+        (addr_hi << 8) as u16 | addr_lo as u16
+    }
+
     pub fn write(&self, ram: &mut Ram, addr: usize, data: u8) {
         match addr {
             0x0000..=0x1FFF => ram.write(addr & 0x7FF, data),
