@@ -108,7 +108,9 @@ pub struct Cpu {
     y: u8,   // Y Index
     pc: u16, // Program Counter
     sp: u8,  // Stack Pointer
-    f: u8,   // Status Flags
+    p: u8,   // Status Flags
+
+    cycles: usize,
 }
 
 impl Cpu {
@@ -119,7 +121,9 @@ impl Cpu {
             y: 0x00,
             pc: 0x0000,
             sp: 0x00,
-            f: 0x00,
+            p: 0x00,
+
+            cycles: 0,
         }
     }
 
@@ -129,6 +133,19 @@ impl Cpu {
             ProgramCounter::Skip => self.pc + 2,
             ProgramCounter::Jump => panic!("PC Jump not implemented yet."),
         }
+    }
+
+    fn set_flag (&mut self, flag: CpuFlag, flag_set: bool) {
+        if flag_set {
+            self.p |= flag as u8;
+        } else {
+            self.p &= !(flag as u8);
+        }
+    }
+
+    fn set_flag_negative_zero (&mut self, value: u8) {
+        self.set_flag(CpuFlag::N, (value & 0b1000_0000) != 0);
+        self.set_flag(CpuFlag::Z, value == 0);
     }
 
     fn fetch_addr(&mut self, addr: AddrMode, bus: &Bus, ram: &Ram) -> u16 {
@@ -249,9 +266,58 @@ impl Cpu {
     fn opcode_lda(&mut self, addr: AddrMode, cycles: u8, bus: &Bus, ram: &Ram) {
         let current_addr = self.fetch_addr(addr, bus, ram);
         self.a = bus.read(ram, current_addr as usize);
-        // Build set_flag();
-        // Set flags via set_flag()
-        // Decide how to set cycles
-        // Set cycles
+        self.set_flag_negative_zero(self.a);
+        self.cycles += cycles as usize;
+    }
+}
+
+
+// First attempt at using unit testing
+// Would like to build more and learn more about it
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn cpu_set_flag() {
+        use crate::*;
+        use crate::cpu::*;
+
+        let mut cpu = Cpu::new();
+        cpu.set_flag(CpuFlag::Z, true);
+        assert_eq!(cpu.p, 0b0000_0010);
+        cpu.set_flag(CpuFlag::Z, false);
+        assert_eq!(cpu.p, 0b0000_0000);
+        cpu.set_flag(CpuFlag::N, true);
+        assert_eq!(cpu.p, 0b1000_0000);
+        cpu.set_flag(CpuFlag::N, false);
+        assert_eq!(cpu.p, 0b0000_0000);
+    }
+
+    #[test]
+    fn cpu_lda() {
+        use crate::*;
+        use crate::cpu::*;
+
+        let mut cpu = Cpu::new();
+        let bus = Bus::new();
+        let mut ram = Ram::new();
+
+        bus.write(&mut ram, 0x0000, 0x2B);
+        cpu.opcode_lda(AddrMode::IMM, 2, &bus, &ram);
+        assert_eq!(cpu.a, 0x2B);
+        assert_eq!(cpu.p, 0b0000_0000);
+        assert_eq!(cpu.cycles, 0x02);
+
+        bus.write(&mut ram, 0x0001, 0xA0);
+        cpu.opcode_lda(AddrMode::IMM, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0xA0);
+        assert_eq!(cpu.p, 0b1000_0000);
+        assert_eq!(cpu.cycles, 0x06);
+
+        bus.write(&mut ram, 0x0002, 0x00);
+        cpu.opcode_lda(AddrMode::IMM, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x00);
+        assert_eq!(cpu.p, 0b0000_0010);
+        assert_eq!(cpu.cycles, 0x0A);
     }
 }
