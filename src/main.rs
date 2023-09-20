@@ -1,7 +1,5 @@
 // Route ROM buffer to RAM mapping? (Is ROM buffer directly accessible...
 //    or only accessible through RAM mapping?)
-// Build out more detailed debug information
-// Rework main to work with new CPU pipeline for testing
 
 mod cpu;
 mod bus;

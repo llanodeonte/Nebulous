@@ -1,6 +1,5 @@
 // TODO:
 // Set PC and expand functions to allow fetch of first opcode
-// Build a function to auto set flag bit based on CpuFlag enum?
 // Build out address resolution functions
 // Should the PC be incremented at address resolution or during opcode execution?
 
