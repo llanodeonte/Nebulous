@@ -20,21 +20,26 @@ fn main() {
     let mut rom = Rom::new();
     rom.load_rom();
 
-    // Ram test prior to writing to Ram
-    let test_byte = bus.read(&ram, 0x7FF);
-    println!("Test byte: {:X?}", test_byte);
+    // Load test bytes to RAM
+    bus.write(&mut ram, 0x0000, 0xA9); // LDA IMM
+    bus.write(&mut ram, 0x0001, 0x2B); // Random data
+    bus.write(&mut ram, 0x0002, 0xA5); // LDA ZPG
+    bus.write(&mut ram, 0x0003, 0xC4); // ZPG Addr
+    bus.write(&mut ram, 0x00C4, 0x57); // Random data
 
-    // Writing test byte to Ram
-    bus.write(&mut ram, 0xFFF, 0xA1);
+    let mut loop_limit = 2;
 
-    // Ram test after writing to Ram
-    let test_byte = bus.read(&ram, 0x7FF);
-    println!("Test byte: {:X?}", test_byte);
+    cpu.debug_print();
 
-    // CPU testing
-    let test_pc = cpu.cycle(&bus, &ram);
-    println!("Test pc: {:X?}", test_pc);
-
-    // ROM load test (Currently limited to the beginning of a file)
-    println!("ROM file name: {:X?}", &rom.buffer[0..480]);
+    while loop_limit > 0 {
+        if cpu.cycles == 0 {
+            println!("Cycles: {:?}", cpu.cycles);
+            println!("------------------");
+            cpu.clock(&bus, &ram);
+            cpu.debug_print();
+            loop_limit -= 1;
+        }
+        println!("Cycles: {:?}", cpu.cycles);
+        cpu.cycles -= 1;
+    }
 }
