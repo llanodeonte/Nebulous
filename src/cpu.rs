@@ -110,7 +110,7 @@ pub struct Cpu {
     sp: u8,  // Stack Pointer
     p: u8,   // Status Flags
 
-    cycles: usize,
+    pub cycles: usize,
 }
 
 impl Cpu {
@@ -125,6 +125,16 @@ impl Cpu {
 
             cycles: 0,
         }
+    }
+
+    pub fn debug_print(&self) {
+        println!(" A: {:02X?}", self.a);
+        println!(" X: {:02X?}", self.x);
+        println!(" Y: {:02X?}", self.y);
+        println!("PC: {:02X?}", self.pc);
+        println!("SP: {:02X?}", self.sp);
+        println!(" P: {:08b}", self.p);
+        // println!("Cycles: {:?}", self.cycles);
     }
 
     fn set_pc (&mut self, pc_addr: ProgramCounter) {
@@ -159,7 +169,7 @@ impl Cpu {
             // AddrMode::IMP => self.addr_imp(), // Implicit
             // AddrMode::ACC => self.addr_acc(), // Accumulator
             AddrMode::IMM => self.addr_imm(), // Immediate
-            // AddrMode::ZPG => self.addr_zpg(), // Zero Page
+            AddrMode::ZPG => self.addr_zpg(bus, ram), // Zero Page
             // AddrMode::ABS => self.addr_abs(), // Absolute
             // AddrMode::REL => self.addr_rel(), // Relative
             // AddrMode::IND => self.addr_ind(), // Indirect
@@ -171,11 +181,21 @@ impl Cpu {
     fn addr_imm(&mut self) -> u16 {
         let addr = self.pc;
         self.set_pc(ProgramCounter::Next);
+        println!("Current Addr: {:04X}", addr);
         addr
     }
 
-    pub fn cycle(&mut self, bus: &Bus, ram: &Ram) {
+    fn addr_zpg(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr = bus.read(ram, self.pc as usize) as u16;
+        self.set_pc(ProgramCounter::Next);
+        let addr = addr & 0x00FF;
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    pub fn clock(&mut self, bus: &Bus, ram: &Ram) {
         let current_opcode = self.fetch_opcode(bus, ram);
+        println!("Current Opcode: {:02X}", current_opcode);
         self.set_pc(ProgramCounter::Next);
         self.execute_opcode(current_opcode, bus, ram);
     }
@@ -256,8 +276,9 @@ impl Cpu {
             // 0xF8 => self.sed(), // SED
             // 0xFC => self.nop(), // NOP a,x
 
-            // ALU Opcodes
-            0xA9 => self.opcode_lda(AddrMode::IMM, 2, bus, ram), // LDA #i
+            // Load Opcodes
+            0xA9 => self.opcode_lda(AddrMode::IMM, 2, bus, ram),
+            0xA5 => self.opcode_lda(AddrMode::ZPG, 3, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
@@ -278,9 +299,9 @@ impl Cpu {
 mod tests {
 
     #[test]
-    fn cpu_set_flag() {
+    fn set_flag() {
         use crate::*;
-        use crate::cpu::*;
+        use cpu::*;
 
         let mut cpu = Cpu::new();
         cpu.set_flag(CpuFlag::Z, true);
@@ -294,9 +315,24 @@ mod tests {
     }
 
     #[test]
-    fn cpu_lda() {
+    fn addr_zpg() {
         use crate::*;
-        use crate::cpu::*;
+
+        let mut cpu = Cpu::new();
+        let bus = Bus::new();
+        let mut ram = Ram::new();
+
+        bus.write(&mut ram, 0x0000, 0x2B);
+        let addr = cpu.addr_zpg(&bus, &ram);
+
+        assert_eq!(addr, 0x002B);
+        assert_eq!(cpu.pc, 0x0001);
+    }
+
+    #[test]
+    fn lda() {
+        use crate::*;
+        use cpu::*;
 
         let mut cpu = Cpu::new();
         let bus = Bus::new();
