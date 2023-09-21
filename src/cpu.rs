@@ -103,7 +103,7 @@ enum CpuFlag {
 
 pub struct Cpu {
     a: u8,   // Accumulator
-    x: u8,   // X Index
+    pub x: u8,   // X Index; Temp pub for testing
     y: u8,   // Y Index
     pc: u16, // Program Counter
     sp: u8,  // Stack Pointer
@@ -159,8 +159,8 @@ impl Cpu {
 
     fn fetch_addr(&mut self, addr: AddrMode, bus: &Bus, ram: &Ram) -> u16 {
         match addr {
-            // AddrMode::ZPX => self.addr_zpx(), // Zero Page, X
-            // AddrMode::ZPY => self.addr_zpy(), // Zero Page, Y
+            AddrMode::ZPX => self.addr_zpx(bus, ram), // Zero Page, X
+            AddrMode::ZPY => self.addr_zpy(bus, ram), // Zero Page, Y
             // AddrMode::ABX => self.addr_abx(), // Absolute, X
             // AddrMode::ABY => self.addr_aby(), // Absolute, Y
             // AddrMode::INX => self.addr_inx(), // Indirect, X
@@ -176,7 +176,7 @@ impl Cpu {
         }
     }
 
-    // 
+    // Sets addr to addr held in current pc
     fn addr_imm(&mut self) -> u16 {
         let addr = self.pc;
         self.set_pc(ProgramCounter::Next);
@@ -184,10 +184,29 @@ impl Cpu {
         addr
     }
 
+    // Sets addr hi byte to 00 and lo byte to data at current pc
     fn addr_zpg(&mut self, bus: &Bus, ram: &Ram) -> u16 {
-        let addr = bus.read(ram, self.pc as usize) as u16;
+        let addr_lo = bus.read(ram, self.pc as usize);
         self.set_pc(ProgramCounter::Next);
-        let addr = addr & 0x00FF;
+        let addr = (addr_lo as u16) & 0x00FF;
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr hi byte to 00 and lo byte to data at current pc + x reg
+    fn addr_zpx(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr_lo = bus.read(ram, self.pc as usize).wrapping_add(self.x);
+        self.set_pc(ProgramCounter::Next);
+        let addr = (addr_lo as u16) & 0x00FF;
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr hi byte to 00 and lo byte to data at current pc + y reg
+    fn addr_zpy(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr_lo = bus.read(ram, self.pc as usize).wrapping_add(self.y);
+        self.set_pc(ProgramCounter::Next);
+        let addr = (addr_lo as u16) & 0x00FF;
         println!("Current Addr: {:04X}", addr);
         addr
     }
@@ -278,6 +297,7 @@ impl Cpu {
             // Load Opcodes
             0xA9 => self.opcode_lda(AddrMode::IMM, 2, bus, ram),
             0xA5 => self.opcode_lda(AddrMode::ZPG, 3, bus, ram),
+            0xB5 => self.opcode_lda(AddrMode::ZPX, 4, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
@@ -302,6 +322,7 @@ mod tests {
         use crate::*;
         use cpu::*;
 
+        // Test Set Flag Z and N as true and false
         let mut cpu = Cpu::new();
         cpu.set_flag(CpuFlag::Z, true);
         assert_eq!(cpu.p, 0b0000_0010);
@@ -314,45 +335,81 @@ mod tests {
     }
 
     #[test]
-    fn addr_zpg() {
+    fn addr_zpy() {
         use crate::*;
-
         let mut cpu = Cpu::new();
         let bus = Bus::new();
         let mut ram = Ram::new();
 
+        // Test ZPY without wrapping add
         bus.write(&mut ram, 0x0000, 0x2B);
-        let addr = cpu.addr_zpg(&bus, &ram);
-
-        assert_eq!(addr, 0x002B);
+        cpu.y = 0x01;
+        let addr = cpu.addr_zpy(&bus, &ram);
+        assert_eq!(addr, 0x002C);
         assert_eq!(cpu.pc, 0x0001);
+
+        // Test ZPY with wrapping add
+        bus.write(&mut ram, 0x0001, 0xFF);
+        cpu.y = 0xA1;
+        let addr = cpu.addr_zpy(&bus, &ram);
+        assert_eq!(addr, 0x00A0);
+        assert_eq!(cpu.pc, 0x0002);
+
     }
 
     #[test]
     fn lda() {
         use crate::*;
         use cpu::*;
-
         let mut cpu = Cpu::new();
         let bus = Bus::new();
         let mut ram = Ram::new();
 
+        // Test LDA with positive non zero data at IMM addr
         bus.write(&mut ram, 0x0000, 0x2B);
         cpu.opcode_lda(AddrMode::IMM, 2, &bus, &ram);
         assert_eq!(cpu.a, 0x2B);
         assert_eq!(cpu.p, 0b0000_0000);
-        assert_eq!(cpu.cycles, 0x02);
+        assert_eq!(cpu.cycles, 2);
 
+        // Test LDA with negative non zero data at IMM addr
         bus.write(&mut ram, 0x0001, 0xA0);
         cpu.opcode_lda(AddrMode::IMM, 4, &bus, &ram);
         assert_eq!(cpu.a, 0xA0);
         assert_eq!(cpu.p, 0b1000_0000);
-        assert_eq!(cpu.cycles, 0x06);
+        assert_eq!(cpu.cycles, 6);
 
+        // Test LDA with non negative zero data at IMM addr
         bus.write(&mut ram, 0x0002, 0x00);
         cpu.opcode_lda(AddrMode::IMM, 4, &bus, &ram);
         assert_eq!(cpu.a, 0x00);
         assert_eq!(cpu.p, 0b0000_0010);
-        assert_eq!(cpu.cycles, 0x0A);
+        assert_eq!(cpu.cycles, 10);
+
+        // Test LDA with positive non zero data at ZPG addr
+        bus.write(&mut ram, 0x0003, 0x1F);
+        bus.write(&mut ram, 0x001F, 0x24);
+        cpu.opcode_lda(AddrMode::ZPG, 3, &bus, &ram);
+        assert_eq!(cpu.a, 0x24);
+        assert_eq!(cpu.p, 0b0000_0000);
+        assert_eq!(cpu.cycles, 13);
+
+        // Test LDA with positive non zero data at ZPX addr
+        bus.write(&mut ram, 0x0004, 0x2F);
+        cpu.x = 0x12;
+        bus.write(&mut ram, 0x0041, 0x36);
+        cpu.opcode_lda(AddrMode::ZPX, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x36);
+        assert_eq!(cpu.p, 0b0000_0000);
+        assert_eq!(cpu.cycles, 17);
+
+        // Test LDA with positive non zero data at ZPX addr with wrapping add
+        bus.write(&mut ram, 0x0005, 0xFF);
+        cpu.x = 0x10;
+        bus.write(&mut ram, 0x000F, 0x04);
+        cpu.opcode_lda(AddrMode::ZPX, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x04);
+        assert_eq!(cpu.p, 0b0000_0000);
+        assert_eq!(cpu.cycles, 21);
     }
 }
