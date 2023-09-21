@@ -24,15 +24,19 @@ fn main() {
     bus.write(&mut ram, 0x0002, 0xA5); // LDA ZPG
     bus.write(&mut ram, 0x0003, 0xC4); // ZPG Addr
     bus.write(&mut ram, 0x00C4, 0x57); // Random data
+    bus.write(&mut ram, 0x0004, 0xB5); // LDA ZPX
+    bus.write(&mut ram, 0x0005, 0x1F); // ZPX Base Addr
+    cpu.x = 0x10;                                 // ZPX Offset
+    bus.write(&mut ram, 0x002F, 0x34); // Random data
 
-    let mut loop_limit = 2;
+    let mut loop_limit = 3;
 
     cpu.debug_print();
 
     while loop_limit > 0 {
         if cpu.cycles == 0 {
-            println!("Cycles: {:?}", cpu.cycles);
-            println!("------------------");
+            println!("Cycles: {:?}, Executing", cpu.cycles);
+            println!("--------------------");
             cpu.clock(&bus, &ram);
             cpu.debug_print();
             loop_limit -= 1;
