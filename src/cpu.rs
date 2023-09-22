@@ -159,19 +159,19 @@ impl Cpu {
 
     fn fetch_addr(&mut self, addr: AddrMode, bus: &Bus, ram: &Ram) -> u16 {
         match addr {
-            AddrMode::ZPX => self.addr_zpx(bus, ram), // Zero Page, X
-            AddrMode::ZPY => self.addr_zpy(bus, ram), // Zero Page, Y
-            // AddrMode::ABX => self.addr_abx(), // Absolute, X
-            // AddrMode::ABY => self.addr_aby(), // Absolute, Y
-            // AddrMode::INX => self.addr_inx(), // Indirect, X
-            // AddrMode::INY => self.addr_iny(), // Indirect, Y
             // AddrMode::IMP => self.addr_imp(), // Implicit
             // AddrMode::ACC => self.addr_acc(), // Accumulator
             AddrMode::IMM => self.addr_imm(), // Immediate
             AddrMode::ZPG => self.addr_zpg(bus, ram), // Zero Page
-            // AddrMode::ABS => self.addr_abs(), // Absolute
+            AddrMode::ZPX => self.addr_zpx(bus, ram), // Zero Page, X
+            AddrMode::ZPY => self.addr_zpy(bus, ram), // Zero Page, Y
             // AddrMode::REL => self.addr_rel(), // Relative
+            AddrMode::ABS => self.addr_abs(bus, ram), // Absolute
+            // AddrMode::ABX => self.addr_abx(), // Absolute, X
+            // AddrMode::ABY => self.addr_aby(), // Absolute, Y
             // AddrMode::IND => self.addr_ind(), // Indirect
+            // AddrMode::INX => self.addr_inx(), // Indirect, X
+            // AddrMode::INY => self.addr_iny(), // Indirect, Y
             _ => panic!("{:?} is an invalid addressing mode.", addr)
         }
     }
@@ -207,6 +207,14 @@ impl Cpu {
         let addr_lo = bus.read(ram, self.pc as usize).wrapping_add(self.y);
         self.set_pc(ProgramCounter::Next);
         let addr = (addr_lo as u16) & 0x00FF;
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr hi byte to pc + 1 and addr lo byte to pc
+    fn addr_abs(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr = bus.read_u16(ram, self.pc as usize);
+        self.set_pc(ProgramCounter::Skip);
         println!("Current Addr: {:04X}", addr);
         addr
     }
@@ -294,10 +302,11 @@ impl Cpu {
             // 0xF8 => self.sed(), // SED
             // 0xFC => self.nop(), // NOP a,x
 
-            // Load Opcodes
+            // Load/Store Operations
             0xA9 => self.opcode_lda(AddrMode::IMM, 2, bus, ram),
             0xA5 => self.opcode_lda(AddrMode::ZPG, 3, bus, ram),
             0xB5 => self.opcode_lda(AddrMode::ZPX, 4, bus, ram),
+            0xAD => self.opcode_lda(AddrMode::ABS, 4, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
@@ -411,5 +420,12 @@ mod tests {
         assert_eq!(cpu.a, 0x04);
         assert_eq!(cpu.p, 0b0000_0000);
         assert_eq!(cpu.cycles, 21);
+
+        // Test LDA with ABS address
+        bus.write(&mut ram, 0x0006, 0x05);
+        bus.write(&mut ram, 0x0007, 0x04);
+        bus.write(&mut ram, 0x0405, 0x46);
+        cpu.opcode_lda(AddrMode::ABS, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x46);
     }
 }
