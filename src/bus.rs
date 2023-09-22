@@ -33,7 +33,7 @@ impl Bus {
     pub fn read_u16 (&self, ram: &Ram, addr: usize) -> u16 {
         let addr_lo = ram.read(addr as usize);
         let addr_hi = ram.read((addr + 1) as usize);
-        (addr_hi << 4) as u16 | addr_lo as u16
+        (addr_hi as u16) << 8 | addr_lo as u16
     }
 
     pub fn write(&self, ram: &mut Ram, addr: usize, data: u8) {
