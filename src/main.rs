@@ -32,8 +32,18 @@ fn main() {
     bus.write(&mut ram, 0x0007, 0x47); // ABS addr lo
     bus.write(&mut ram, 0x0008, 0x01); // ABS addr hi
     bus.write(&mut ram, 0x0147, 0x17); // Random data
-    
-    let mut loop_limit = 4;
+    bus.write(&mut ram, 0x0009, 0xBD); // LDA ABX
+    bus.write(&mut ram, 0x000A, 0x0C); // ABX base addr lo
+    bus.write(&mut ram, 0x000B, 0x02); // ABX base addr hi
+    cpu.x = 0x01;
+    bus.write(&mut ram, 0x020D, 0x27); // Random data
+    bus.write(&mut ram, 0x000C, 0xB9); // LDA ABY
+    bus.write(&mut ram, 0x000D, 0x0D); // ABY base addr lo
+    bus.write(&mut ram, 0x000E, 0x03); // ABY base addr hi
+    cpu.y = 0x02;
+    bus.write(&mut ram, 0x030F, 0x14); // Random data
+
+    let mut loop_limit = 6;
 
     cpu.debug_print();
 
