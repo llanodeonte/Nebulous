@@ -1,7 +1,11 @@
 // TODO:
-// Set PC and expand functions to allow fetch of first opcode
+// Set PC (0xFFFC?)
+//     and expand functions to allow fetch of first opcode from live ROM
 // Build out address resolution functions
-// Should the PC be incremented at address resolution or during opcode execution?
+// Should the PC be incremented at address resolution
+//     or during opcode execution?
+//     - Current implementation should work as needed
+// Add +1 cycle to ABX and ABY when page crossed
 
 use crate::bus::Bus;
 use crate::ram::Ram;
@@ -104,7 +108,7 @@ enum CpuFlag {
 pub struct Cpu {
     a: u8,   // Accumulator
     pub x: u8,   // X Index; Temp pub for testing
-    y: u8,   // Y Index
+    pub y: u8,   // Y Index; Temp pub for testing
     pc: u16, // Program Counter
     sp: u8,  // Stack Pointer
     p: u8,   // Status Flags
@@ -167,8 +171,8 @@ impl Cpu {
             AddrMode::ZPY => self.addr_zpy(bus, ram), // Zero Page, Y
             // AddrMode::REL => self.addr_rel(), // Relative
             AddrMode::ABS => self.addr_abs(bus, ram), // Absolute
-            // AddrMode::ABX => self.addr_abx(), // Absolute, X
-            // AddrMode::ABY => self.addr_aby(), // Absolute, Y
+            AddrMode::ABX => self.addr_abx(bus, ram), // Absolute, X
+            AddrMode::ABY => self.addr_aby(bus, ram), // Absolute, Y
             // AddrMode::IND => self.addr_ind(), // Indirect
             // AddrMode::INX => self.addr_inx(), // Indirect, X
             // AddrMode::INY => self.addr_iny(), // Indirect, Y
@@ -214,6 +218,24 @@ impl Cpu {
     // Sets addr hi byte to pc + 1 and addr lo byte to pc
     fn addr_abs(&mut self, bus: &Bus, ram: &Ram) -> u16 {
         let addr = bus.read_u16(ram, self.pc as usize);
+        self.set_pc(ProgramCounter::Skip);
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr to abs addr + x reg *Missing +1 cycle for page cross
+    fn addr_abx(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr = bus.read_u16(ram, self.pc as usize)
+            .wrapping_add(self.x as u16);
+        self.set_pc(ProgramCounter::Skip);
+        println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr to abs addr + y reg *Missing +1 cycle for page cross
+    fn addr_aby(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr = bus.read_u16(ram, self.pc as usize)
+            .wrapping_add(self.y as u16);
         self.set_pc(ProgramCounter::Skip);
         println!("Current Addr: {:04X}", addr);
         addr
@@ -307,6 +329,8 @@ impl Cpu {
             0xA5 => self.opcode_lda(AddrMode::ZPG, 3, bus, ram),
             0xB5 => self.opcode_lda(AddrMode::ZPX, 4, bus, ram),
             0xAD => self.opcode_lda(AddrMode::ABS, 4, bus, ram),
+            0xBD => self.opcode_lda(AddrMode::ABX, 4, bus, ram),
+            0xB9 => self.opcode_lda(AddrMode::ABY, 4, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
@@ -427,5 +451,21 @@ mod tests {
         bus.write(&mut ram, 0x0405, 0x46);
         cpu.opcode_lda(AddrMode::ABS, 4, &bus, &ram);
         assert_eq!(cpu.a, 0x46);
+
+        // Test LDA with ABX address
+        bus.write(&mut ram, 0x0008, 0x05);
+        bus.write(&mut ram, 0x0009, 0x06);
+        cpu.x = 0x05;
+        bus.write(&mut ram, 0x060A, 0x38);
+        cpu.opcode_lda(AddrMode::ABX, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x38);
+
+        // Test LDA with ABY address
+        bus.write(&mut ram, 0x000A, 0x06);
+        bus.write(&mut ram, 0x000B, 0x07);
+        cpu.y = 0x06;
+        bus.write(&mut ram, 0x070C, 0x28);
+        cpu.opcode_lda(AddrMode::ABY, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x28);
     }
 }
