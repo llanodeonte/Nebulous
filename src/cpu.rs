@@ -114,6 +114,7 @@ pub struct Cpu {
     p: u8,   // Status Flags
 
     pub cycles: usize,
+    page_crossed: bool,
 }
 
 impl Cpu {
@@ -127,6 +128,7 @@ impl Cpu {
             p: 0x00,
 
             cycles: 0,
+            page_crossed: false,
         }
     }
 
@@ -162,6 +164,7 @@ impl Cpu {
     }
 
     fn fetch_addr(&mut self, addr: AddrMode, bus: &Bus, ram: &Ram) -> u16 {
+        self.page_crossed = false;
         match addr {
             // AddrMode::IMP => self.addr_imp(), // Implicit
             // AddrMode::ACC => self.addr_acc(), // Accumulator
@@ -223,21 +226,27 @@ impl Cpu {
         addr
     }
 
-    // Sets addr to abs addr + x reg *Missing +1 cycle for page cross
+    // Sets addr to abs addr + x reg
     fn addr_abx(&mut self, bus: &Bus, ram: &Ram) -> u16 {
-        let addr = bus.read_u16(ram, self.pc as usize)
-            .wrapping_add(self.x as u16);
+        let base_addr = bus.read_u16(ram, self.pc as usize);
+        let addr = base_addr.wrapping_add(self.x as u16);
         self.set_pc(ProgramCounter::Skip);
         println!("Current Addr: {:04X}", addr);
+        if (addr & 0xFF00) > (base_addr & 0xFF00) {
+            self.page_crossed = true;
+        }
         addr
     }
 
-    // Sets addr to abs addr + y reg *Missing +1 cycle for page cross
+    // Sets addr to abs addr + y reg
     fn addr_aby(&mut self, bus: &Bus, ram: &Ram) -> u16 {
-        let addr = bus.read_u16(ram, self.pc as usize)
-            .wrapping_add(self.y as u16);
+        let base_addr = bus.read_u16(ram, self.pc as usize);
+        let addr = base_addr.wrapping_add(self.y as u16);
         self.set_pc(ProgramCounter::Skip);
         println!("Current Addr: {:04X}", addr);
+        if (addr & 0xFF00) > (base_addr & 0xFF00) {
+            self.page_crossed = true;
+        }
         addr
     }
 
@@ -341,6 +350,9 @@ impl Cpu {
         self.a = bus.read(ram, current_addr as usize);
         self.set_flag_negative_zero(self.a);
         self.cycles += cycles as usize;
+        if self.page_crossed {
+            self.cycles += 1;
+        }
     }
 }
 
@@ -390,6 +402,7 @@ mod tests {
 
     }
 
+    // Rework LDA test to be more succinct when done building
     #[test]
     fn lda() {
         use crate::*;
@@ -404,6 +417,7 @@ mod tests {
         assert_eq!(cpu.a, 0x2B);
         assert_eq!(cpu.p, 0b0000_0000);
         assert_eq!(cpu.cycles, 2);
+        assert_eq!(cpu.page_crossed, false);
 
         // Test LDA with negative non zero data at IMM addr
         bus.write(&mut ram, 0x0001, 0xA0);
@@ -459,6 +473,7 @@ mod tests {
         bus.write(&mut ram, 0x060A, 0x38);
         cpu.opcode_lda(AddrMode::ABX, 4, &bus, &ram);
         assert_eq!(cpu.a, 0x38);
+        assert_eq!(cpu.page_crossed, false);
 
         // Test LDA with ABY address
         bus.write(&mut ram, 0x000A, 0x06);
@@ -467,5 +482,26 @@ mod tests {
         bus.write(&mut ram, 0x070C, 0x28);
         cpu.opcode_lda(AddrMode::ABY, 4, &bus, &ram);
         assert_eq!(cpu.a, 0x28);
+        assert_eq!(cpu.page_crossed, false);
+
+        // Test LDA with ABX address and page cross
+        bus.write(&mut ram, 0x000C, 0x05);
+        bus.write(&mut ram, 0x000D, 0x08);
+        cpu.x = 0xFF;
+        bus.write(&mut ram, 0x0904, 0xAA);
+        cpu.opcode_lda(AddrMode::ABX, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0xAA);
+        assert_eq!(cpu.cycles, 38);
+        assert_eq!(cpu.page_crossed, true);
+
+        // Test LDA with ABY address and page cross
+        bus.write(&mut ram, 0x000E, 0x06);
+        bus.write(&mut ram, 0x000F, 0x09);
+        cpu.y = 0xFF;
+        bus.write(&mut ram, 0x0A05, 0x26);
+        cpu.opcode_lda(AddrMode::ABY, 4, &bus, &ram);
+        assert_eq!(cpu.a, 0x26);
+        assert_eq!(cpu.cycles, 43);
+        assert_eq!(cpu.page_crossed, true);
     }
 }
