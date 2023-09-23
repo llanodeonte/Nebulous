@@ -18,32 +18,40 @@ fn main() {
     let mut rom = Rom::new();
     rom.load_rom();
 
+    cpu.x = 0x01;
+    cpu.y = 0x02;
+
     // Load test bytes to RAM
     bus.write(&mut ram, 0x0000, 0xA9); // LDA IMM
     bus.write(&mut ram, 0x0001, 0x2B); // Random data
     bus.write(&mut ram, 0x0002, 0xA5); // LDA ZPG
-    bus.write(&mut ram, 0x0003, 0xC4); // ZPG addr
-    bus.write(&mut ram, 0x00C4, 0x57); // Random data
+    bus.write(&mut ram, 0x0003, 0x24); // ZPG addr
+    bus.write(&mut ram, 0x0024, 0x57); // Random data
     bus.write(&mut ram, 0x0004, 0xB5); // LDA ZPX
     bus.write(&mut ram, 0x0005, 0x1F); // ZPX base addr
-    cpu.x = 0x10;                                 // ZPX offset
-    bus.write(&mut ram, 0x002F, 0x34); // Random data
+    bus.write(&mut ram, 0x0020, 0x34); // Random data
     bus.write(&mut ram, 0x0006, 0xAD); // LDA ABS
-    bus.write(&mut ram, 0x0007, 0x47); // ABS addr lo
-    bus.write(&mut ram, 0x0008, 0x01); // ABS addr hi
-    bus.write(&mut ram, 0x0147, 0x17); // Random data
+    bus.write(&mut ram, 0x0007, 0x27); // ABS addr lo
+    bus.write(&mut ram, 0x0008, 0x00); // ABS addr hi
+    bus.write(&mut ram, 0x0027, 0x17); // Random data
     bus.write(&mut ram, 0x0009, 0xBD); // LDA ABX
-    bus.write(&mut ram, 0x000A, 0x0C); // ABX base addr lo
-    bus.write(&mut ram, 0x000B, 0x02); // ABX base addr hi
-    cpu.x = 0x01;
-    bus.write(&mut ram, 0x020D, 0x27); // Random data
+    bus.write(&mut ram, 0x000A, 0x2C); // ABX base addr lo
+    bus.write(&mut ram, 0x000B, 0x00); // ABX base addr hi
+    bus.write(&mut ram, 0x002D, 0x27); // Random data
     bus.write(&mut ram, 0x000C, 0xB9); // LDA ABY
-    bus.write(&mut ram, 0x000D, 0x0D); // ABY base addr lo
-    bus.write(&mut ram, 0x000E, 0x03); // ABY base addr hi
-    cpu.y = 0x02;
-    bus.write(&mut ram, 0x030F, 0x14); // Random data
+    bus.write(&mut ram, 0x000D, 0x2A); // ABY base addr lo
+    bus.write(&mut ram, 0x000E, 0x00); // ABY base addr hi
+    bus.write(&mut ram, 0x002C, 0x14); // Random data
+    bus.write(&mut ram, 0x000F, 0xBD); // LDA ABX
+    bus.write(&mut ram, 0x0010, 0xFF); // ABX base addr lo
+    bus.write(&mut ram, 0x0011, 0x01); // ABX base addr hi
+    bus.write(&mut ram, 0x0200, 0xAC); // Random data
+    bus.write(&mut ram, 0x0012, 0xB9); // LDA ABY
+    bus.write(&mut ram, 0x0013, 0xFF); // ABY base addr lo
+    bus.write(&mut ram, 0x0014, 0x01); // ABY base addr hi
+    bus.write(&mut ram, 0x0201, 0xBF); // Random data
 
-    let mut loop_limit = 6;
+    let mut loop_limit = 8;
 
     cpu.debug_print();
 
