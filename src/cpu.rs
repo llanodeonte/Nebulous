@@ -174,7 +174,7 @@ impl Cpu {
             AddrMode::ABY => self.addr_aby(bus, ram), // Absolute, Y
             // AddrMode::IND => self.addr_ind(), // Indirect
             AddrMode::INX => self.addr_inx(bus, ram), // Indirect, X
-            // AddrMode::INY => self.addr_iny(), // Indirect, Y
+            AddrMode::INY => self.addr_iny(bus, ram), // Indirect, Y
             _ => panic!("{:?} is an invalid addressing mode.", addr)
         }
     }
@@ -246,13 +246,29 @@ impl Cpu {
         addr
     }
 
-    fn addr_inx(&mut self, bus: &Bus, ram:&Ram) -> u16 {
+    // Sets addr to the addr held at the zpg redirected to by addr_lo at pc + x reg
+    fn addr_inx(&mut self, bus: &Bus, ram: &Ram) -> u16 {
         let addr_lo = bus.read(ram, self.pc as usize).wrapping_add(self.x);
         self.set_pc(ProgramCounter::Next);
         let zpg_addr = (addr_lo as u16) & 0x00FF;
         println!("Zero PG Addr: {:04X}", zpg_addr);
         let addr = bus.read_u16(ram, zpg_addr as usize);
         println!("Current Addr: {:04X}", addr);
+        addr
+    }
+
+    // Sets addr to the y reg + addr held at the zpg redirected from addr_lo at pc 
+    fn addr_iny(&mut self, bus: &Bus, ram: &Ram) -> u16 {
+        let addr_lo = bus.read(ram, self.pc as usize);
+        self.set_pc(ProgramCounter::Next);
+        let zpg_addr = (addr_lo as u16) & 0x00FF;
+        println!("Zero PG Addr: {:04X}", zpg_addr);
+        let base_addr = bus.read_u16(ram, zpg_addr as usize);
+        let addr = base_addr + (self.y as u16);
+        println!("Current Addr: {:04X}", addr);
+        if (addr & 0xFF00) > (base_addr & 0xFF00) {
+            self.page_crossed = true;
+        }
         addr
     }
 
@@ -281,6 +297,7 @@ impl Cpu {
             0xBD => self.opcode_lda(AddrMode::ABX, 4, bus, ram),
             0xB9 => self.opcode_lda(AddrMode::ABY, 4, bus, ram),
             0xA1 => self.opcode_lda(AddrMode::INX, 6, bus, ram),
+            0xB1 => self.opcode_lda(AddrMode::INY, 5, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
@@ -453,5 +470,27 @@ mod tests {
         bus.write(&mut ram, 0x0304, 0x38);
         cpu.opcode_lda(AddrMode::INX, 6, &bus, &ram);
         assert_eq!(cpu.a, 0x38);
+
+        // Test LDA with INY address
+        bus.write(&mut ram, 0x0011, 0xA7);
+        cpu.y = 0x02;
+        bus.write(&mut ram, 0x00A7, 0x08);
+        bus.write(&mut ram, 0x00A8, 0x02);
+        bus.write(&mut ram, 0x020A, 0x19);
+        cpu.opcode_lda(AddrMode::INY, 5, &bus, &ram);
+        assert_eq!(cpu.a, 0x19);
+        assert_eq!(cpu.page_crossed, false);
+        assert_eq!(cpu.cycles, 54);
+
+        // Test LDA with INY address and page cross
+        bus.write(&mut ram, 0x0012, 0xA9);
+        cpu.y = 0xFF;
+        bus.write(&mut ram, 0x00A9, 0x08);
+        bus.write(&mut ram, 0x00AA, 0x02);
+        bus.write(&mut ram, 0x0307, 0x29);
+        cpu.opcode_lda(AddrMode::INY, 5, &bus, &ram);
+        assert_eq!(cpu.a, 0x29);
+        assert_eq!(cpu.page_crossed, true);
+        assert_eq!(cpu.cycles, 60);
     }
 }
