@@ -22,6 +22,7 @@ fn main() {
     cpu.y = 0x02;
 
     // Load test bytes to RAM
+    // Will change main loop testing method after full LDA implementation
     bus.write(&mut ram, 0x0000, 0xA9); // LDA IMM
     bus.write(&mut ram, 0x0001, 0x2B); // Random data
     bus.write(&mut ram, 0x0002, 0xA5); // LDA ZPG
@@ -50,8 +51,14 @@ fn main() {
     bus.write(&mut ram, 0x0013, 0xFF); // ABY base addr lo
     bus.write(&mut ram, 0x0014, 0x01); // ABY base addr hi
     bus.write(&mut ram, 0x0201, 0xBF); // Random data
+    bus.write(&mut ram, 0x0015, 0xA1); // LDA INX
+    bus.write(&mut ram, 0x0016, 0xA4); // INX zpg addr lo
+    bus.write(&mut ram, 0x00A5, 0x04); // INX addr lo
+    bus.write(&mut ram, 0x00A6, 0x03); // INX addr hi
+    bus.write(&mut ram, 0x0304, 0x38); // Random data
 
-    let mut loop_limit = 8;
+
+    let mut loop_limit = 9;
 
     cpu.debug_print();
 
