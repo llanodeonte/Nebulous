@@ -56,9 +56,14 @@ fn main() {
     bus.write(&mut ram, 0x00A5, 0x04); // INX addr lo
     bus.write(&mut ram, 0x00A6, 0x03); // INX addr hi
     bus.write(&mut ram, 0x0304, 0x38); // Random data
+    bus.write(&mut ram, 0x0017, 0xB1); // LDA INY
+    bus.write(&mut ram, 0x0018, 0xC7); // INY zpg addr lo
+    bus.write(&mut ram, 0x00C7, 0xFF); // INY addr lo
+    bus.write(&mut ram, 0x00C8, 0x03); // INY addr hi
+    bus.write(&mut ram, 0x0401, 0x29); // Random data
 
 
-    let mut loop_limit = 9;
+    let mut loop_limit = 10;
 
     cpu.debug_print();
 
