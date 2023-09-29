@@ -61,9 +61,10 @@ fn main() {
     bus.write(&mut ram, 0x00C7, 0xFF); // INY addr lo
     bus.write(&mut ram, 0x00C8, 0x03); // INY addr hi
     bus.write(&mut ram, 0x0401, 0x29); // Random data
+    bus.write(&mut ram, 0x0019, 0xA2); // LDX IMM
+    bus.write(&mut ram, 0x001A, 0x03); // Random data
 
-
-    let mut loop_limit = 10;
+    let mut loop_limit = 11;
 
     cpu.debug_print();
 
