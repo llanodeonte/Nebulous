@@ -298,15 +298,28 @@ impl Cpu {
             0xB9 => self.opcode_lda(AddrMode::ABY, 4, bus, ram),
             0xA1 => self.opcode_lda(AddrMode::INX, 6, bus, ram),
             0xB1 => self.opcode_lda(AddrMode::INY, 5, bus, ram),
+            0xA2 => self.opcode_ldx(AddrMode::IMM, 2, bus, ram),
 
             _ => panic!("Unkown opcode {:X?} at PC {:X?}", current_opcode, self.pc),
         }
     }
 
+    // Load data from supplied address into register A
     fn opcode_lda(&mut self, addr: AddrMode, cycles: u8, bus: &Bus, ram: &Ram) {
         let current_addr = self.fetch_addr(addr, bus, ram);
         self.a = bus.read(ram, current_addr as usize);
         self.set_flag_negative_zero(self.a);
+        self.cycles += cycles as usize;
+        if self.page_crossed {
+            self.cycles += 1;
+        }
+    }
+
+    // Load data from supplied address into register X
+    fn opcode_ldx(&mut self, addr: AddrMode, cycles: u8, bus: &Bus, ram: &Ram) {
+        let current_addr = self.fetch_addr(addr, bus, ram);
+        self.x = bus.read(ram, current_addr as usize);
+        self.set_flag_negative_zero(self.x);
         self.cycles += cycles as usize;
         if self.page_crossed {
             self.cycles += 1;
